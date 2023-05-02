@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 import com.google.common.collect.ImmutableList;
 import com.jgaap.generics.AnalyzeException;
 import com.jgaap.generics.DistanceCalculationException;
-import com.jgaap.generics.NeighborAnalysisDriver;
 import com.jgaap.generics.ValidationDriver;
 import com.jgaap.util.Ballot;
 import com.jgaap.util.Document;
@@ -48,23 +47,26 @@ public class LeaveOneOutKNearestNeighborDriver extends ValidationDriver {
     private static final String DEFAULT_TIE = "lastPicked";
     
     public LeaveOneOutKNearestNeighborDriver() {
-		addParams("k", "K: Number of Neighbors", "5", new String[] { "1", "2",
-				"3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13",
-				"14", "15", "16", "17", "18", "19", "20", "21", "22", "23",
-				"24", "25" }, false);
+		addParams("k", "K: Number of Neighbors", "5", new String[] { "1", "2", "3", "4",
+				"5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",
+				"18", "19", "20", "21", "22", "23", "24", "25" }, false);
     }
+    
 	@Override
 	public String displayName() {
 		return "Leave One Out K-Nearest Neighbor driver" + this.getDistanceName();
 	}
+	
 	@Override
 	public String tooltipText() {
 		return " ";
 	}
+	
 	@Override
 	public boolean showInGUI() {
 		return true;
 	}
+	
 	@Override
 	public void train(List<Document> knowns){
 		ImmutableList.Builder<Pair<Document, EventMap>> builder = ImmutableList.builder();
@@ -76,13 +78,9 @@ public class LeaveOneOutKNearestNeighborDriver extends ValidationDriver {
 
 	@Override
 	public List<Pair<String, Double>> analyze(Document unknown) throws AnalyzeException {
-
         Ballot<String> ballot = new Ballot<String>();
-
         int k = getParameter("k", DEFAULT_K);
-
         String tieBreaker = getParameter("tieBreaker", DEFAULT_TIE);
-
 		List<Pair<String, Double>> rawResults = new ArrayList<Pair<String,Double>>();
 
 		for (int i = 0; i < knowns.size(); i++) {
@@ -94,13 +92,15 @@ public class LeaveOneOutKNearestNeighborDriver extends ValidationDriver {
 					logger.error("Distance "+distance.displayName()+" failed", e);
 					throw new AnalyzeException("Distance "+distance.displayName()+" failed");
 				}
-			
+				
 				rawResults.add(new Pair<String, Double>(knowns.get(i).getFirst().getAuthor(), current, 2));
 				logger.debug(unknown.getFilePath()+"(Unknown):"+knowns.get(i).getFirst().getFilePath()+"("+knowns.get(i).getFirst().getAuthor()+") Distance:"+current);
-		}
-			else
+			}
+			else {
 				logger.info("Excluded document that's being tested.");
+			}
 		}
+		
 		Collections.sort(rawResults);
         for(int i = 0; i < Math.min(k, rawResults.size()); i++) {
             Pair<String, Double> p = rawResults.get(i);
@@ -119,7 +119,6 @@ public class LeaveOneOutKNearestNeighborDriver extends ValidationDriver {
 	}
 
     private static class LastPickedComparator implements Comparator<Pair<String, Double>>, Serializable {
-
 		private static final long serialVersionUID = 1L;
 
 		public int compare(Pair<String, Double> firstPair, Pair<String, Double> secondPair) {
@@ -136,10 +135,12 @@ public class LeaveOneOutKNearestNeighborDriver extends ValidationDriver {
                 first *= 2;
                 second *= 2;
             }
+            
             // If first had fewer decimal places than second, this means the last first vote came BEFORE the last second vote.
             if(((int)second -second) > 0.0000001) {
                 return 1;
             }
+            
             // Otherwise, the last second vote came before the last first vote.
             else {
                 return -1;
