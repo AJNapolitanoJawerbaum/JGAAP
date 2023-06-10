@@ -224,7 +224,8 @@ public class Parameterizable {
 	    	String[] parameters = parametersString.split("\\|");
 	    	for(String parameter : parameters){
 	    		String[] tmp = parameter.split(":", 2);
-	    		setParameter(tmp[0].trim(), tmp[1].trim());
+	    		if(tmp.length > 1)
+	    			setParameter(tmp[0].trim(), tmp[1].trim());
 	    	}
     	}
     }

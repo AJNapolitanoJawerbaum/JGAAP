@@ -59,7 +59,8 @@ public abstract class AnalysisDriver extends Parameterizable implements
 	 * @throws AnalyzeException
 	 */
 	abstract public List<Pair<String, Double>> analyze(Document unknownDocument) throws AnalyzeException;
-
+	
+	
 	public int compareTo(AnalysisDriver o) {
 		return displayName().compareTo(o.displayName());
 	}
