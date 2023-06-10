@@ -314,6 +314,13 @@ public class Document {
 	public List<Pair<String, Double>> getRawResult(AnalysisDriver analysisDriver){
 		return results.get(analysisDriver);
 	}
+
+	
+	public boolean equals(Document document) {
+		if(this.getFilePath().contains(document.getFilePath()) || document.getFilePath().contains(this.getFilePath()))
+			return true;
+		return false;
+	}
 	
 	/**
 	 * Generates a formatted report for the analysisDriver and eventDriver specified 
@@ -371,7 +378,7 @@ public class Document {
 		buffer.append("\n\n");
 		return buffer.toString();
 	}
-
+	
 	/**
 	 * Generates and returns a formatted report of all results 
 	 * @return
@@ -384,11 +391,10 @@ public class Document {
 		}
 		return buffer.toString();
 	}
-	
+
 	public  Map<AnalysisDriver, List<Pair<String, Double>>> getRawResults() { 
 		return results;
 	}
-
 	public void clearResults() {
 		results.clear();
 	}
@@ -436,8 +442,11 @@ public class Document {
 	public boolean hasFailed(){
 		return failed;
 	}
-	
+
 	public enum Type {
 		PDF, DOC, HTML, GENERIC, DATABASE
 	}
+
+
+
 }

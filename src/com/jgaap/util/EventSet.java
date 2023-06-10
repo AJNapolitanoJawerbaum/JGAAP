@@ -18,7 +18,7 @@
 /**
  **/
 package com.jgaap.util;
-
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -31,7 +31,7 @@ import java.util.List;
 public class EventSet implements Iterable<Event> {
 
     /** Events are currently stored as a ArrayList of Events */
-    private List<Event> events;
+    private ArrayList<Event> events;
         
     /** Creates a new, empty list of events. Will also include unique ID */
     public EventSet() {
@@ -49,6 +49,12 @@ public class EventSet implements Iterable<Event> {
     /** Creates a new list of events given a previously created list of events **/
     public EventSet(List<Event> evts) {
         events = new ArrayList<Event>(evts);
+    }
+    public EventSet(Set<Event> evts) {
+        events = new ArrayList<Event>(evts.size());
+        for(Event event : evts) {
+        	events.add(event);
+        }
     }
 
     /**
