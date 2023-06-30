@@ -28,7 +28,7 @@ import com.jgaap.generics.Canonicizer;
  */
 public class StripNonPunc extends Canonicizer {
 
-	private String punc = ",.?!\"\'`;:-()&$"; // Characters which will be
+	private String punc = "!\"#$%&'()*+,-./:;<=>?@[]^_`{|}~¡¿—`"; // Characters which will be
 
 	// considered "punctuation"
 
