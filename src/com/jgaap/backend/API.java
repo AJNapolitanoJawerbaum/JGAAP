@@ -31,6 +31,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import edu.stanford.nlp.util.ConfusionMatrix;
 
 import com.jgaap.classifiers.LeaveOneOutNoDistanceDriver;
 import com.jgaap.generics.AnalysisDriver;
@@ -51,6 +52,7 @@ import com.jgaap.generics.WEKAAnalysisDriver;
 import com.jgaap.languages.English;
 import com.jgaap.util.Document;
 import com.jgaap.util.EventSet;
+import com.jgaap.util.WeightingMethod;
 
 /**
  * 
@@ -726,44 +728,27 @@ public class API {
 					logger.info("Training " + analysisDriver.displayName());
 					analysisDriver.train(knownDocuments2);
 					logger.info("Finished Training "+analysisDriver.displayName());
-					futureDocuments.add(executor.submit(new AnalysisWorker(knownDocument, analysisDriver)));	
-				//await analysis to finish
-					while(futureDocuments.size() != 0){
-						Iterator<Future<Document>> iterator = futureDocuments.iterator();
-						while(iterator.hasNext()) {
-							Future<Document> futureDocument = iterator.next();
-							if(futureDocument.isDone()) {
-								iterator.remove();
-							}
-						}
-				
-					}
+					futureDocuments.add(executor.submit(new AnalysisWorker(knownDocument, analysisDriver)));
 				}
+				//await analysis to finish
 			} else if(analysisDriver instanceof LeaveOneOutNoDistanceDriver) {
 				for (Document knownDocument : knownDocuments) {
 					List<Document> knownDocuments2 = new ArrayList<Document>();
-					for(Document knownDocument2 : knownDocuments){
+					for(Document knownDocument2 : knownDocuments) {
 //This is messy and time-consuming, but setting knownDocuments2 = knownDocuments and then removing knownDocument from knownDocuments2 doesn't work, not sure why.
 						if(!knownDocument2.equals(knownDocument))
-							knownDocuments2.add(knownDocument2);
-					} 
+							knownDocuments2.add(knownDocument2); 
+					}
 					logger.info("Training " + analysisDriver.displayName());
 					analysisDriver.train(knownDocuments2);
 					logger.info("Finished Training "+analysisDriver.displayName());
-					futureDocuments.add(executor.submit(new AnalysisWorker(knownDocument, analysisDriver)));
-					//await analysis to finish
-					while(futureDocuments.size() != 0){
-						Iterator<Future<Document>> iterator = futureDocuments.iterator();
-						while(iterator.hasNext()) {
-							Future<Document> futureDocument = iterator.next();
-							if(futureDocument.isDone()) {
-								iterator.remove();
-							}
-						}
+					//futureDocuments.add(executor.submit(new AnalysisWorker(knownDocument, analysisDriver)));
+					logger.info("Analyzing " + knownDocument.toString());
+					knownDocument.addResult(analysisDriver, analysisDriver.analyze(knownDocument));
+					logger.info("Finished analyzing " + knownDocument.toString());
 					
-					}
 				}
-				
+				logger.info(WeightingMethod.calculateConfusionMatrix(analysisDriver, knownDocuments).toString());
 			} else if (analysisDriver instanceof WEKAAnalysisDriver){
 				logger.info("Training " + analysisDriver.displayName());
 				analysisDriver.train(knownDocuments);
@@ -777,23 +762,25 @@ public class API {
 				logger.info("Training " + analysisDriver.displayName());
 				analysisDriver.train(knownDocuments);
 				logger.info("Finished Training "+analysisDriver.displayName());
-				for (Document unknownDocument : unknownDocuments) {
+				for (Document unknownDocument : unknownDocuments)
 					futureDocuments.add(executor.submit(new AnalysisWorker(unknownDocument, analysisDriver)));
-				}
+
+			}
 				//await analysis to finish
-				while(futureDocuments.size() != 0){
-					Iterator<Future<Document>> iterator = futureDocuments.iterator();
-					while(iterator.hasNext()) {
-						Future<Document> futureDocument = iterator.next();
-						if(futureDocument.isDone()) {
-							iterator.remove();
+			while(futureDocuments.size() != 0){
+				Iterator<Future<Document>> iterator = futureDocuments.iterator();
+				while(iterator.hasNext()) {
+					Future<Document> futureDocument = iterator.next();
+					if(futureDocument.isDone()) {
+						iterator.remove();
 						}
 					}
-				
 				}
-			}
+			//if(analysisDriver instanceof ValidationDriver || analysisDriver instanceof LeaveOneOutNoDistanceDriver)
+				//logger.info(WeightingMethod.calculateConfusionMatrix(analysisDriver, knownDocuments).toString());
 			logger.info("Finished Analysis with "+analysisDriver.displayName());
 		}
+		
 	}
 
 	/**
