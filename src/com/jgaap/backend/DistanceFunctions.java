@@ -72,7 +72,7 @@ public class DistanceFunctions {
 		String[] tmp = action.split("\\|", 2);
 		action = tmp[0].trim().toLowerCase();
 		if(distanceFunctions.containsKey(action)){
-			distanceFunction= distanceFunctions.get(action).getClass().newInstance();
+			distanceFunction= distanceFunctions.get(action).getClass().getDeclaredConstructor().newInstance();
 		}else{
 			throw new Exception("Distance Function "+action+" was not found!");
 		}

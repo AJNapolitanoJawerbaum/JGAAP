@@ -72,7 +72,7 @@ public class EventDrivers {
 		String[] tmp = action.split("\\|", 2);
 		action = tmp[0].trim().toLowerCase();
 		if(eventDrivers.containsKey(action)){
-			eventDriver = eventDrivers.get(action).getClass().newInstance();
+			eventDriver = eventDrivers.get(action).getClass().getDeclaredConstructor().newInstance();
 		}else{
 			throw new Exception("Event Driver "+action+" not found!");
 		}

@@ -72,7 +72,7 @@ public class EventCullers {
 		String[] tmp = action.split("\\|", 2);
 		action = tmp[0].trim().toLowerCase();
 		if(eventCullers.containsKey(action)){
-			eventCuller = eventCullers.get(action).getClass().newInstance();
+			eventCuller = eventCullers.get(action).getClass().getDeclaredConstructor().newInstance();
 		}else{
 			throw new Exception("Event culler "+action+" not found!");
 		}

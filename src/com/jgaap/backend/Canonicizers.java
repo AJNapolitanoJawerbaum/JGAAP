@@ -71,7 +71,7 @@ public class Canonicizers {
 		String[] tmp = action.split("\\|", 2);
 		action = tmp[0].trim().toLowerCase();
 		if(canonicizers.containsKey(action)){
-			canonicizer = canonicizers.get(action).getClass().newInstance();
+			canonicizer = canonicizers.get(action).getClass().getDeclaredConstructor().newInstance();
 		}else{
 			throw new Exception("Canonicizer "+action+" not found!");
 		}

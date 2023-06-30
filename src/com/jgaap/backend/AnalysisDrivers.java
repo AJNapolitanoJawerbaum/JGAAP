@@ -71,7 +71,7 @@ public class AnalysisDrivers {
 		String[] tmp = action.split("\\|", 2);
 		action = tmp[0].trim().toLowerCase();
 		if(analysisDrivers.containsKey(action)){
-			analysisDriver = analysisDrivers.get(action).getClass().newInstance();
+			analysisDriver = analysisDrivers.get(action).getClass().getDeclaredConstructor().newInstance();
 		}else{
 			throw new Exception("Analysis Driver "+action+" not found!");
 		}

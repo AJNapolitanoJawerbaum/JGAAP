@@ -61,7 +61,7 @@ public class AutoPopulate {
 		for(Object obj : allClasses) {
 			if(superClass.isAssignableFrom(((Class<?>)obj))){
 				try {
-					classes.add(((Class<?>)obj).newInstance());
+					classes.add(((Class<?>)obj).getClass().getDeclaredConstructor().newInstance());
 				}  catch (Exception e) {
 					logger.warn("Problem instancing object "+obj, e);
 				}
