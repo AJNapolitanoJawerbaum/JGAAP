@@ -29,15 +29,16 @@ public class weightedVoting extends AnalysisDriver {
 	private static Set<Pair<AnalysisDriver, Double>> weightedClassifiers = new HashSet<Pair<AnalysisDriver, Double>>();
 	private static Set<Pair<AnalysisDriver, Double>> weights = new HashSet<Pair<AnalysisDriver, Double>>();
 	private static Set<String> authors = new HashSet<String>();
+	private static List<Pair<String,Double>> individualVotes = new ArrayList<Pair<String,Double>>();
 	private static Logger logger = Logger.getLogger(weightedVoting.class);
 
 	
 	public weightedVoting() {
 		addParams("Classifiers", "Classifiers to be put to a vote.","Comma-separated list. Add | before parameters.", new String[] {""}, true); //TODO: Get all classifiers and add them to the array, then call each of them
 		addParams("Distances", "Distance metrics for distance dependent Analysis Drivers","Comma-separated list", new String[] {""}, true);
-		addParams("WeightingMethod", "Way to weight the classifiers.", "cross-validation", new String[]{"cross-validation", "accuracyOverSum", "none"}, false);
+		addParams("WeightingMethod", "Way to weight the classifiers.", "F1 of averages", new String[]{"Macro average precision", "Macro Average Recall", "F1", "F1 of averages", "Averaged F1", "none"}, false);
 		addParams("Cutoff", "Minimum cross-validation score to consider an algorithm's vote.", "75", new String[]{"0", "10", "20","30","40","45","50","55","60","65","70","75","80","85","90","95", "100"}, true);
-		addParams("VotingMethod", "Voting Method.", "sum", new String[] {"sum", "sum/count"}, false);
+		addParams("VotingMethod", "Voting Method.", "sum", new String[] {"sum", "average"}, false);
 		addParams("AuthorsForCrossval", "Comma separated list of Authors to cross-validate. Empty = All.", "", new String[] {}, true);
 	}
 
@@ -48,7 +49,7 @@ public class weightedVoting extends AnalysisDriver {
 
 	@Override
 	public String tooltipText() {
-		return "Takes in a list of analysis drivers, and put them to a vote on each unknown document. Warning: We recommend including independent classifiers only.";
+		return "Weighted Voting takes in a list of analysis drivers, weights their vote according to user input, and puts them to a vote on each unknown document. Warning: We recommend including independent classifiers only.";
 	}
 
 	@Override
@@ -59,18 +60,22 @@ public class weightedVoting extends AnalysisDriver {
 
 	@Override
 	public void train(List<Document> knownDocuments) throws AnalyzeException {
-		for(Document doc : knownDocuments)
-			authors.add(doc.getAuthor());
+		Set<String> auth = new HashSet<String>();
+		for(Document doc : knownDocuments) {
+			auth.add(doc.getAuthor());
+		}
+		authors = auth;
 		Set<AnalysisDriver> clsfr = new HashSet<AnalysisDriver>(); 
 		for(String s : getParameter("Classifiers").split(",")) {
 			try {
 				AnalysisDriver classifier = AnalysisDrivers.getAnalysisDriver(s.trim());
 				if(classifier instanceof NeighborAnalysisDriver) {
-					NeighborAnalysisDriver classif = (NeighborAnalysisDriver)AnalysisDrivers.getAnalysisDriver(s);;
 					String[] distances = getParameter("Distances").split(",");
 					for(String distance : distances) {
-						DistanceFunction dist = DistanceFunctions.getDistanceFunction(distance);
+						NeighborAnalysisDriver classif = (NeighborAnalysisDriver)classifier;
+						DistanceFunction dist = DistanceFunctions.getDistanceFunction(distance.trim());
 						classif.setDistance(dist);
+						logger.info("Set " + dist.displayName()+ " for " + classif.displayName());
 						clsfr.add(classif);
 					}
 				}
@@ -83,7 +88,7 @@ public class weightedVoting extends AnalysisDriver {
 			}
 		}
 		classifiers = clsfr;
-		 weights = WeightingMethod.weight(classifiers, knownDocuments, getParameter("WeightingMethod"), getParameter("AuthorsForCrossval"));
+		 weights = WeightingMethod.weight(classifiers, knownDocuments, getParameter("WeightingMethod"), getParameter("AuthorsForCrossval"), authors);
 		 Set<Pair<AnalysisDriver, Double>> weighted = new HashSet<Pair<AnalysisDriver,Double>>();
 		 for(Pair<AnalysisDriver, Double> weight : weights)
 				if(weight.getSecond()>=(Double.parseDouble(getParameter("Cutoff"))/100))
@@ -101,39 +106,58 @@ public class weightedVoting extends AnalysisDriver {
 	 * */
 	public Map<String, Double> vote(Document unknownDocument) throws AnalyzeException {
 		List<Pair<String, Double>> authorVote = new ArrayList<Pair<String,Double>>();
-		
+		List<Pair<String, Double>> authorVot = new ArrayList<Pair<String,Double>>();
 		for(Pair<AnalysisDriver, Double> weightedClassifier : weightedClassifiers) {
 			List<Pair<String, Double>> results = weightedClassifier.getFirst().analyze(unknownDocument);
-			logger.info(weightedClassifier.getFirst().displayName()+ ". weight =  " + weightedClassifier.getSecond() + ". Voted for " + results.get(0).getFirst() + " for document " + unknownDocument.getTitle());
-			authorVote.add(new Pair<String,Double>(results.get(0).getFirst(), weightedClassifier.getSecond()));	
+			//logger.info(weightedClassifier.getFirst().displayName()+ ". Voted for " + results.get(0).getFirst() + " for document " + unknownDocument.getTitle() + ". Its accuracy is: ");
+			authorVote.add(new Pair<String,Double>(results.get(0).getFirst(), weightedClassifier.getSecond()));
+			authorVot.add(new Pair<String,Double>(weightedClassifier.getFirst().displayName()+ " voted for " + results.get(0).getFirst() + " as author of document " + unknownDocument.getTitle() + ". Its accuracy is: ", weightedClassifier.getSecond()));
 		}
+		individualVotes = authorVot;
 			//We should check the results for ties, and let the score be 0 for all authors if that is the case.
 		Map<String, Double> authorVoteSumMap = new HashMap<String, Double>();
-	    for (String author : authors) {
+		if(getParameter("VotingMethod").equals("sum")) {
+			for (String author : authors) {
 		        double totalVote = 0.0;
 		        for (Pair<String, Double> vote : authorVote) {
 		            if (vote.getFirst().contains(author)) {
 		                totalVote += vote.getSecond();
-		            }
-		        }
+		                
+		            	}
+		        	}
+		        
 		        if(!authorVoteSumMap.containsKey(author))
 		        	authorVoteSumMap.put(author, totalVote);
-		        
-		    }
-	    	logger.info(authorVoteSumMap);
-	    	return authorVoteSumMap;
-	}
+		    	}
+			}
+		else if(getParameter("VotingMethod").equals("average")) {
+			for (String author : authors) {
+		        double totalVote = 0.0;
+		        for (Pair<String, Double> vote : authorVote) {
+		            if (vote.getFirst().contains(author)) {
+		                totalVote += vote.getSecond();
+		                
+		            	}
+		        	}
+		        totalVote /= weightedClassifiers.size();
+		        if(!authorVoteSumMap.containsKey(author))
+		        	authorVoteSumMap.put(author, totalVote);
+			}
+		}
+		return authorVoteSumMap;
+
+		}
 
 	@Override
 	public List<Pair<String, Double>> analyze(Document unknownDocument) throws AnalyzeException {
-		Map<String, Double> authorVoteSumMap = vote(unknownDocument);
+		Map<String, Double> authorVoteMap = vote(unknownDocument);
 		Comparator<Pair<String, Double>> compareByScore = (Pair<String, Double> r1, Pair<String, Double> r2) -> r2.getSecond().compareTo(r1.getSecond());
-		List<Pair<String,Double>> authorVoteSum = new ArrayList<Pair<String,Double>>();
+		List<Pair<String,Double>> authorVoteList = new ArrayList<Pair<String,Double>>();
 		for(String author : authors)
-			authorVoteSum.add(new Pair<String,Double>(author,authorVoteSumMap.get(author)));
-			
-		Collections.sort(authorVoteSum, compareByScore);
-		//Collections.reverse(authorVoteSum);
-		return authorVoteSum;
+			authorVoteList.add(new Pair<String,Double>(author,authorVoteMap.get(author)));
+		Collections.sort(authorVoteList, compareByScore);
+		for(Pair<String,Double> vote : individualVotes)
+			authorVoteList.add(vote);
+		return authorVoteList;
 	}
 }
