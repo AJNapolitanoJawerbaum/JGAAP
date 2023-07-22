@@ -38,10 +38,12 @@ public class WeightingMethod {
 			 return balancedAccuracyWeighted(classifiers, knownDocuments, authorsToCrossval);
 		 else if(method.equalsIgnoreCase("F1"))
 			 return F1(classifiers, knownDocuments, authorsToCrossval);
-		 else if(method.equalsIgnoreCase("F1 of averages"))
+		 else if(method.equalsIgnoreCase("Macro F1 of averages"))
 			 return macroF1OfAverages(classifiers, knownDocuments, authorsToCrossval);
-		 else if(method.equalsIgnoreCase("Averaged F1"))
+		 else if(method.equalsIgnoreCase("Macro Averaged F1"))
 			 return averageMacroF1(classifiers, knownDocuments, authorsToCrossval);
+		 else if(method.equalsIgnoreCase("Micro Averaged F1"))
+			 return microAveragedF1(classifiers, knownDocuments, authorsToCrossval);
 		 else
 		 {
 			 Set<Pair<AnalysisDriver, Double>> unweightedClassifiers = new HashSet<Pair<AnalysisDriver,Double>>(); 
@@ -50,6 +52,7 @@ public class WeightingMethod {
 			 return unweightedClassifiers;
 		 }
 	}
+	
 	/**
 	 * This algorithm computes the confusion matrix of a classifier for several weighting methods.
 	 * @throws AnalyzeException 
@@ -265,6 +268,39 @@ public class WeightingMethod {
 		}
 		return weights;	
 	}
+	public static Set<Pair<AnalysisDriver, Double>> microAveragedF1(Set<AnalysisDriver> classifiers, List<Document> knownDocuments, String authors) throws AnalyzeException{
+		List<Pair<AnalysisDriver,ConfusionMatrix<String>>> confusionMatrices = calculateConfusionMatrices(classifiers, knownDocuments, authors);
+		Set<Pair<AnalysisDriver, Double>> weights = new HashSet<Pair<AnalysisDriver,Double>>();
+		for(Pair<AnalysisDriver,ConfusionMatrix<String>> confusionMatrix : confusionMatrices) {
+			Double TP = 0.0;
+			Double rest = 0.0;
+			Double F1 = 0.0;
+			if(!authors.trim().isEmpty()) {
+				for(String author : authors.split(",")) {
+						TP += confusionMatrix.getSecond().get(author, author);
+						for(String author2 : authors.split(","))
+							if(author2 != author) {
+								rest += confusionMatrix.getSecond().get(author, author2);
+							}
+				}
+				F1 = TP/(TP+rest/2);
+				weights.add(new Pair<AnalysisDriver,Double>(confusionMatrix.getFirst(), F1));
+			}
+			else {
+				for(String author : authorSet) {
+					TP += confusionMatrix.getSecond().get(author, author);
+					for(String author2 : authorSet)
+						if(author2 != author) {
+							rest += confusionMatrix.getSecond().get(author, author2);
+							}
+				}
+				F1 = TP/(TP+rest/2);
+				weights.add(new Pair<AnalysisDriver,Double>(confusionMatrix.getFirst(),F1));
+			}
+		}
+		return weights;
+	}
+
 	/*
 	public static Set<Pair<AnalysisDriver, Double>> mattheusCorrelationCoefficient(Set<AnalysisDriver> classifiers, List<Document> knownDocuments, String authors) throws AnalyzeException{
 		List<Pair<AnalysisDriver,ConfusionMatrix<String>>> confusionMatrices = calculateConfusionMatrices(classifiers, knownDocuments, authors);
