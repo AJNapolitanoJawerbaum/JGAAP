@@ -746,9 +746,8 @@ public class API {
 					logger.info("Analyzing " + knownDocument.toString());
 					knownDocument.addResult(analysisDriver, analysisDriver.analyze(knownDocument));
 					logger.info("Finished analyzing " + knownDocument.toString());
-					
 				}
-				logger.info(WeightingMethod.calculateConfusionMatrix(analysisDriver, knownDocuments).toString());
+				//logger.info(WeightingMethod.calculateConfusionMatrix(analysisDriver, knownDocuments).toString());
 			} else if (analysisDriver instanceof WEKAAnalysisDriver){
 				logger.info("Training " + analysisDriver.displayName());
 				analysisDriver.train(knownDocuments);
@@ -764,7 +763,6 @@ public class API {
 				logger.info("Finished Training "+analysisDriver.displayName());
 				for (Document unknownDocument : unknownDocuments)
 					futureDocuments.add(executor.submit(new AnalysisWorker(unknownDocument, analysisDriver)));
-
 			}
 				//await analysis to finish
 			while(futureDocuments.size() != 0){
@@ -776,9 +774,9 @@ public class API {
 						}
 					}
 				}
+			logger.info("Finished Analysis with "+analysisDriver.displayName());
 			//if(analysisDriver instanceof ValidationDriver || analysisDriver instanceof LeaveOneOutNoDistanceDriver)
 				//logger.info(WeightingMethod.calculateConfusionMatrix(analysisDriver, knownDocuments).toString());
-			logger.info("Finished Analysis with "+analysisDriver.displayName());
 		}
 		
 	}
